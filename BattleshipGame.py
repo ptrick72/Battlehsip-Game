@@ -4,31 +4,18 @@ class Ship:
     def __init__(self, type, size):
         self.type = type
         self.size = size
-        self.alignment = "h" # init value, will be overwritten
+        self.alignment = ""
+        self.start_x = 0
+        self.start_y = 0
         self.coordinates = []
         self.hits = 0
         
     def __repr__(self):
-        return "I am a {type} of size {size}".format(type=self.type, size=self.size)
-
-    def get_size(self):
-        return self.size
-    
-    def get_type(self):
         return self.type
 
-    def set_alignment(self, alignment):
-        if alignment == "h" or alignment == "v":
-            self.alignment = alignment
-        else:
-            return False
-        return True
+    def add_coordinates(self, coordinates):
+        self.coordinates.append(coordinates)
 
-    def set_coordinates(self, coordinates):
-        self.coordinates = coordinates
-
-    def get_hits(self):
-        return self.hits
 
 class Grid:
     def __init__(self, type, size):
@@ -47,31 +34,34 @@ class Grid:
             gridline.append(0)
         for i in range(size):
             self.grid.append(list(gridline))
-            self.grid.append(list(gridline))
     
-    def coordinates_inbound_check(self, coordinates):
-        if len(coordinates) == 0: return False
-        if int(coordinates[0]) > self.size or int(coordinates[0]) < 1: return False
-        if int(coordinates[1]) > self.size or int(coordinates[1]) < 1: return False
+    def coordinate_inbound_check(self, coordinate):
+        if int(coordinate) > self.size or int(coordinate) < 1: return False
+        if int(coordinate) > self.size or int(coordinate) < 1: return False
         return True
 
-    def check_input_ship_placement(self, ship, info):
-        if len(info) == 0: return "no input"
-        if info[0] != "h" and info[0] != "v": return "unkown alignment"
-        if int(info[1]) > len(self.player_ship_grid) or int(info[1]) < 1: return "x out of scope"
-        if int(info[2]) > len(self.player_ship_grid) or int(info[2]) < 1: return "y out of scope"
-        if info[0] == "h":
-            max_y = len(self.player_ship_grid)
-            max_x = len(self.player_ship_grid)-len(ship)+1
+    def ship_fits_grid_check(self, ship):
+        if ship.alignment == "h":
+            max_y = self.size
+            max_x = self.size-ship.size+1
         else:
-            max_y = len(self.player_ship_grid)-len(ship)+1
-            max_x = len(self.player_ship_grid)
-        if int(info[2]) > max_y: return "y too big to place ship"
-        if int(info[1]) > max_x: return "x too big to place ship"
-        x = int(info[1])-1
-        y = int(info[2])-1
-        if self.player_ship_grid[y][x] != 0: return "already ship there"
-        return True
+            max_y = self.size-ship.size+1
+            max_x = self.size
+        if (ship.start_y+1) > max_y: return False, "y too big to place ship"
+        if (ship.start_x+1) > max_x: return False, "x too big to place ship"
+        x = tmp_x = ship.start_x
+        y = tmp_y = ship.start_y
+        if self.grid[y][x] != 0: return False, "There is already a ship at this starting point"
+        i = 0
+        while i < ship.size:
+            if self.grid[tmp_y][tmp_x] != 0:
+                return False, "There is a ship in the way"
+            if ship.alignment == "h":
+                tmp_x += 1
+            else:
+                tmp_y += 1
+            i += 1
+        return True, "Ship fits grid"
     
 
 class Player:
@@ -86,34 +76,17 @@ class Player:
     def __repr__(self):
         return "I am {name}".format(name=self.name)
 
-    def place_ship(self, ship, ship_alignment, start_y, start_x):
-        # place ships if x, y are in scope
-        y = start_y
-        x = start_x
-        ship_y_position = []
-        ship_x_position = []
-        if y > len(self.ship_grid.grid) or y < 0: return "y out of scope"
-        if x > len(self.ship_grid.grid) or x < 0: return "x out of scope"
-        for part in ship.get_size():
-            if self.ship_grid.grid[y][x] == 0:
-                # place ship only if coordinate is empty
-                self.ship_grid.grid[y][x] = ship
-                # keep track of the coordinates for restore
-                ship_y_position.append(y)
-                ship_x_position.append(x)
-            else:
-                # if a ship is there, restore
-                for pos_y in ship_y_position:
-                    for pos_x in ship_x_position:
-                        self.ship_grid.grid[pos_y][pos_x] = 0
-                return "already ship there"
-            if ship_alignment == "horizontal":
-                x += 1
-            elif ship_alignment == "vertical":
-                y += 1
-            else:
-                return "invalid direction"
-        return "ship placed"
+    def place_ship(self, ship):
+        y = ship.start_y
+        x = ship.start_x
+        i = 0
+        while i < ship.size:
+            self.ship_grid.grid[y][x] = ship
+            ship.add_coordinates([x, y])
+            if ship.alignment == "h": x += 1
+            else: y += 1
+            i += 1
+        return True
 
     def shoot(self, target, y, x):
         # check target grid for ship
@@ -223,7 +196,9 @@ class Battleship:
 
         - HAL places his ships on a 7x7 grid.
         
-        - You place your ships on a 7x7 grid.
+        - You place your ships on a 7x7 grid by giving alignment and starting point coordinates.
+          Alignment must be h for horizontal or v for vertical.
+          Starting point must be in the grid. Make sure the ships fits in the grid.
         
         - You have these ships:
 
@@ -245,31 +220,113 @@ class Battleship:
         6|16 |26 |36 |46 |56 |66 |76 |
         7|17 |27 |37 |47 |57 |67 |77 |
 
-        - Btw, HAL isn't very intelligent, he just shoots randomly
+        - Btw, HAL isn't very intelligent, he just shoots randomly.
+
+        - You can enter q or Q to quit the game.
 
         """
         return txt
     
     def __init__(self):
         print(self)
+        self.hal = Hal("Hal")
     
-    def input_handler(self, input_type, input):
-        # End
-        # Display Grid
-        # Enter Player Name
-        # Enter Player Shot
-        pass
+    def input_validation(self, input_type, input):
+        # Validate player name
+        if input_type == "name":
+            if input != "": return True
+            else: return False
+        # Validate starting point
+        if input_type == "starting_point":
+            alignment = False
+            x = False
+            y = False
+            if input == "": return False
+            if input[0] == "h" or input[0] == "v": alignment = True
+            if input[1].isnumeric() and input[2].isnumeric():
+                if self.human.ship_grid.coordinate_inbound_check(int(input[1])) == True and self.human.ship_grid.coordinate_inbound_check(int(input[2])) == True:
+                    x = True
+                    y = True
+            if alignment == True and x == True and y == True: return True
+            else: return False
 
     def check_gameover(self):
         pass
 
     def play(self):
-       # Ask player for his name
-       name = input("Please enter your name: ")
-       self.human = Player(name)
-       return self.human.name
+        # Ask player for his name
+        player_input = False
+        while player_input == False:
+            str = input("Please enter your name: ")
+            if str == "q" or str == "Q": 
+                return False
+            elif self.input_validation("name", str) == True:
+                self.human = Player(str)
+                player_input = True
+        # Ask player for alignment and starting point coordinates of warship
+        player_input = False
+        while player_input == False:
+            str = input("{name} enter warship (size 4) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
+            if str == "q" or str == "Q": 
+                return False
+            if self.input_validation("starting_point", str) == True:
+                self.human.warship.alignment = str[0]
+                self.human.warship.start_x = int(str[1])-1
+                self.human.warship.start_y = int(str[2])-1
+                fits_grid, msg = self.human.ship_grid.ship_fits_grid_check(self.human.warship)
+                # Place warship in grid
+                if fits_grid == True:
+                    self.human.place_ship(self.human.warship)
+                    print("{ship} has been placed".format(ship=self.human.warship.type))
+                    print(self.human.ship_grid.grid)
+                    print(self.human.warship.coordinates)
+                    player_input = True
+                else:
+                    print(msg)  
+        # Ask player for alignment and starting point coordinates of cruiser
+        player_input = False
+        while player_input == False:
+            str = input("{name} enter cruiser (size 3) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
+            if str == "q" or str == "Q": 
+                return False
+            if self.input_validation("starting_point", str) == True:
+                self.human.cruiser.alignment = str[0]
+                self.human.cruiser.start_x = int(str[1])-1
+                self.human.cruiser.start_y = int(str[2])-1
+                fits_grid, msg = self.human.ship_grid.ship_fits_grid_check(self.human.cruiser)
+                # Place cruiser in grid
+                if fits_grid == True:
+                    self.human.place_ship(self.human.cruiser)
+                    print("{ship} has been placed".format(ship=self.human.cruiser.type))
+                    print(self.human.ship_grid.grid)
+                    print(self.human.cruiser.coordinates)
+                    player_input = True
+                else:
+                    print(msg)
+        # Ask player for alignment and starting point coordinates of destroyer
+        player_input = False
+        while player_input == False:
+            str = input("{name} enter destroyer (size 2) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
+            if str == "q" or str == "Q": 
+                return False
+            if self.input_validation("starting_point", str) == True:
+                self.human.destroyer.alignment = str[0]
+                self.human.destroyer.start_x = int(str[1])-1
+                self.human.destroyer.start_y = int(str[2])-1
+                fits_grid, msg = self.human.ship_grid.ship_fits_grid_check(self.human.destroyer)
+                # Place cruiser in grid
+                if fits_grid == True:
+                    self.human.place_ship(self.human.destroyer)
+                    print("{ship} has been placed".format(ship=self.human.destroyer.type))
+                    print(self.human.ship_grid.grid)
+                    print(self.human.destroyer.coordinates)
+                    player_input = True
+                else:
+                    print(msg)      
+        return True
 
         
 game1 = Battleship()
 msg = game1.play()
+print(game1.hal.name)
 print(msg)
