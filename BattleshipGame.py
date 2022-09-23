@@ -131,47 +131,68 @@ class Player:
 
 
 class Hal(Player):    
-    def choose_ship_starting_point(self, ship, ship_alignment):
-        # define function vars
-        ship_placement = False
-        ship_length = len(ship)
-        time_out = 100
-        # loop as long as we haven't found a starting point in grid
-        # or time out is under 100
-        while (ship_placement == False) or (time_out < 100):
-            # get randon y and x for horizontal alignment
-            if ship_alignment == "horizontal":
-                start_y = random.randint(0,(7-1))
-                start_x = random.randint(0, (7-ship_length))
-            # get random y and x for vertical alignment
-            else:
-                start_y = random.randint(0, (7-ship_length))
-                start_x = random.randint(0,(7-1))
-            # temp y and x to increase in for loop
-            y = start_y
-            x = start_x
-            # loop through ship length and check if coordinate is
-            # already occupied
-            for part in ship:
-                if self.hal_ship_grid[y][x] == 0:   
-                    ship_placement = True
-                    if ship_alignment == "horizontal": x += 1
-                    else: y +=1
-                else:
-                    ship_placement = False
-            time_out += 1
-        return start_y, start_x
+    def get_random_starting_point(self, ship):
+        # get randon y and x for horizontal alignment
+        if ship.alignment == "h":
+            y = random.randint(0,(7-1))
+            x = random.randint(0, (7-ship.size))
+        # get random y and x for vertical alignment
+        else:
+            y = random.randint(0, (7-ship.size))
+            x = random.randint(0,(7-1))
+        return x, y
 
+    def get_random_alignment(self):
+        if random.randint(0,1) == 0:
+            return "h"
+        else: return "v"
+    
     def place_hal_ships(self):
         # Warship
-        y, x = self.get_hal_starting_point(self.warship, "horizontal")
-        self.place_ship(self.hal_ship_grid, self.warship, "horizontal", y, x)
+        ship_placement = False
+        self.warship.alignment = self.get_random_alignment()
+        while ship_placement == False:
+            x, y = self.get_random_starting_point(self.warship)
+            self.warship.start_x = x
+            self.warship.start_y = y
+            fits_grid, msg = self.ship_grid.ship_fits_grid_check(self.warship)
+            # Place warship in grid
+            if fits_grid == True:
+                self.place_ship(self.warship)
+                ship_placement = True
+                print("{ship} has been placed".format(ship=self.warship.type))
+                print(self.ship_grid.grid)
+                print(self.warship.coordinates)
         # Cruiser
-        y, x = self.get_hal_starting_point(self.cruiser, "vertical")
-        self.place_ship(self.hal_ship_grid, self.cruiser, "vertical", y, x)
+        ship_placement = False
+        self.cruiser.alignment = self.get_random_alignment()
+        while ship_placement == False:
+            x, y = self.get_random_starting_point(self.cruiser)
+            self.cruiser.start_x = x
+            self.cruiser.start_y = y
+            fits_grid, msg = self.ship_grid.ship_fits_grid_check(self.cruiser)
+            # Place warship in grid
+            if fits_grid == True:
+                self.place_ship(self.cruiser)
+                ship_placement = True
+                print("{ship} has been placed".format(ship=self.cruiser.type))
+                print(self.ship_grid.grid)
+                print(self.cruiser.coordinates)
         # Destroyer
-        y, x = self.get_hal_starting_point(self.destroyer, "horizontal")
-        self.place_ship(self.hal_ship_grid, self.destroyer, "horizontal", y, x)
+        ship_placement = False
+        self.destroyer.alignment = self.get_random_alignment()
+        while ship_placement == False:
+            x, y = self.get_random_starting_point(self.destroyer)
+            self.destroyer.start_x = x
+            self.destroyer.start_y = y
+            fits_grid, msg = self.ship_grid.ship_fits_grid_check(self.destroyer)
+            # Place warship in grid
+            if fits_grid == True:
+                self.place_ship(self.destroyer)
+                ship_placement = True
+                print("{ship} has been placed".format(ship=self.destroyer.type))
+                print(self.ship_grid.grid)
+                print(self.destroyer.coordinates)
         # return affirmative message
         return "hal ships placed"
 
@@ -230,6 +251,9 @@ class Battleship:
     def __init__(self):
         print(self)
         self.hal = Hal("Hal")
+        # Place HAL ships
+        self.hal.place_hal_ships()
+
     
     def input_validation(self, input_type, input):
         # Validate player name
