@@ -95,39 +95,24 @@ class Player:
     def shoot(self, target, x, y):
         # check own shot grid, if already shot at this coordinate
         if self.shot_grid.grid[y][x] != 0:
-            return "You have already shot this coordinate"
+            return False, "You have already shot this coordinate"
         # check target grid for ship
         if target.ship_grid.grid[y][x] == 0:
-            return "The shot has missed!"
+            return False, "{name}'s shot has missed!".format(name=self.name)
         else:
             self.shot_grid.grid[y][x] = target.ship_grid.grid[y][x].type
             target.ship_grid.grid[y][x].hits += 1
             if target.ship_grid.grid[y][x].is_destroyed() == True:
-                pass
-            else:
-                pass
-            return "The shot has hit a {ship}".format(ship=target.ship_grid.grid[y][x].type)
-
-    def update_destroyed_ships(self, whose_ships):
-        if whose_ships == "player": 
-            # check if ship is destroyed by comparing hit with length
-            if self.get_hits(self.warship, self.hal_shot_grid) == len(self.warship):
-                self.player_warship_destroyed[0] = True
-            if self.get_hits(self.cruiser, self.hal_shot_grid) == len(self.cruiser):
-                self.player_cruiser_destroyed[0] = True
-            if self.get_hits(self.destroyer, self.hal_shot_grid) == len(self.destroyer):
-                self.player_destroyer_destroyed[0] = True
-        elif whose_ships == "hal":
-             # check if ship is destroyed by comparing hit with length
-            if self.get_hits(self.warship, self.player_shot_grid) == len(self.warship):
-                self.hal_warship_destroyed[0] = True
-            if self.get_hits(self.cruiser, self.player_shot_grid) == len(self.cruiser):
-                self.hal_cruiser_destroyed[0] = True
-            if self.get_hits(self.destroyer, self.player_shot_grid) == len(self.destroyer):
-                self.hal_destroyer_destroyed[0] = True 
-        else:
-            return "unkown player"
-        return "destroyed ships updated"
+                return True, "{ship} is destroyed".format(ship=target.ship_grid.grid[y][x].type)
+            else:   
+                return True, "The shot has hit a {ship}".format(ship=target.ship_grid.grid[y][x].type)
+    
+    def all_ships_down(self):
+        warship = self.warship.is_destroyed()
+        cruiser = self.cruiser.is_destroyed()
+        destroyer = self.cruiser.is_destroyed()
+        if warship == True and cruiser == True and destroyer == True: return True
+        else: return False
 
 
 class Hal(Player):    
@@ -254,7 +239,6 @@ class Battleship:
         # Place HAL ships
         self.hal.place_hal_ships()
 
-    
     def input_validation(self, input_type, input):
         # Validate player name
         if input_type == "name":
@@ -284,9 +268,6 @@ class Battleship:
                     y = True
             if x == True and y == True: return True
             else: return False
-
-    def check_gameover(self):
-        pass
 
     def play(self):
         # Ask player for his name
@@ -361,9 +342,23 @@ class Battleship:
             if str == "q" or str == "Q":
                 return False
             if self.input_validation("shot", str) == True:
-                shot = self.human.shoot(self.hal, int(str[0]), int(str[1]))
-                print(shot)
-                player_input = True      
+                shot_x = int(str[0])-1
+                shot_y = int(str[1])-1
+                shot, msg = self.human.shoot(self.hal, shot_x, shot_y)
+                if shot == False:
+                    print(msg)
+                else:
+                    print(msg)
+                    if self.hal.all_ships_down() == True:
+                        msg = "Congratulations {name}! You have won!".format(name=self.human.name)
+                        print(msg)
+                        return False
+                player_input = True
+        # HAL shoots
+        print("Now {name} shoots".format(name=self.hal.name))
+        valid_shot = False
+        while valid_shot == False:
+            pass   
         return True
 
         
