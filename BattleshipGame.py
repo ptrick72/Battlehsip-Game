@@ -1,5 +1,6 @@
 import random
 
+# ship class with functions and attributes
 class Ship:
     def __init__(self, type, size):
         self.type = type
@@ -13,14 +14,17 @@ class Ship:
     def __repr__(self):
         return self.type
 
+    # appends ship coordinates to list
     def add_coordinates(self, coordinates):
         self.coordinates.append(coordinates)
 
+    # checks if ship has been destroyed
     def is_destroyed(self):
         if self.hits == self.size:
             return True
         else: return False
 
+# grid class with functions and attributes
 class Grid:
     def __init__(self, type, size):
         self.type = type
@@ -31,6 +35,7 @@ class Grid:
     def __repr__(self):
         return self.type
     
+    # builds two dimensional grid
     def build_grid(self):
         # build grid
         gridline = []
@@ -39,11 +44,13 @@ class Grid:
         for i in range(self.size):
             self.grid.append(list(gridline))
     
+    # checks if a point is inside the grid
     def coordinate_inbound_check(self, coordinate):
         if int(coordinate) > self.size or int(coordinate) < 1: return False
         if int(coordinate) > self.size or int(coordinate) < 1: return False
         return True
 
+    # checks if a ships fits in the grid and if it doesn't collide with another ship
     def ship_fits_grid_check(self, ship):
         if ship.alignment == "h":
             max_y = self.size
@@ -67,6 +74,8 @@ class Grid:
             i += 1
         return True, "Ship fits grid"
 
+# Shotlist class with functions and attributes
+# Needed for computer player to keep track of its shots
 class ShotList:
     def __init__(self, type, size):
         self.type = type
@@ -77,6 +86,7 @@ class ShotList:
     def __repr__(self):
         return self.type
 
+    # build list with point (x, y) entries
     def build_list(self):
         # build list
         for y in range(self.size):
@@ -84,10 +94,12 @@ class ShotList:
                 point = str(x)+str(y)
                 self.list.append(point)
     
+    # checks if a point is in the list
     def is_in_list(self, point):
         if point in self.list == True: return True
         else: return False
 
+# Player class with functions and attributes
 class Player:
     def __init__(self, name):
         self.name = name
@@ -100,6 +112,7 @@ class Player:
     def __repr__(self):
         return "I am {name}".format(name=self.name)
 
+    # Place player's ship in the grid
     def place_ship(self, ship):
         y = ship.start_y
         x = ship.start_x
@@ -112,22 +125,25 @@ class Player:
             i += 1
         return True
 
+    # shoot target
     def shoot(self, target, x, y):
         # check own shot grid, if already shot at this coordinate
         point = str(x)+str(y)
-        if point in self.shot_list.list == False:
-            return False, "You have already shot this coordinate\n"
+        if self.shot_list.list.count(point) == 0:
+            return False, "> You have already shot this coordinate\n"
         # check target grid for ship
         if target.ship_grid.grid[y][x] == 0:
-            return False, "{name}'s shot has missed!\n".format(name=self.name)
+            self.shot_list.list.remove(point)
+            return False, "> {name}'s shot has missed!\n".format(name=self.name)
         else:
             self.shot_list.list.remove(point)
             target.ship_grid.grid[y][x].hits += 1
             if target.ship_grid.grid[y][x].is_destroyed() == True:
-                return True, "{ship} is destroyed\n".format(ship=target.ship_grid.grid[y][x].type)
+                return True, "> {ship} is destroyed\n".format(ship=target.ship_grid.grid[y][x].type)
             else:   
-                return True, "The shot has hit a {ship}\n".format(ship=target.ship_grid.grid[y][x].type)
+                return True, "> The shot has hit a {ship}\n".format(ship=target.ship_grid.grid[y][x].type)
     
+    # checks if all ships are destroyed
     def all_ships_down(self):
         warship = self.warship.is_destroyed()
         cruiser = self.cruiser.is_destroyed()
@@ -135,6 +151,7 @@ class Player:
         if warship == True and cruiser == True and destroyer == True: return True
         else: return False
 
+# Hal class which inherits from the Player class
 class Hal(Player):    
     def get_random_starting_point(self, ship):
         # get randon y and x for horizontal alignment
@@ -157,6 +174,7 @@ class Hal(Player):
             return "h"
         else: return "v"
     
+    # places hal ship in the grid
     def place_hal_ships(self):
         # Warship
         ship_placement = False
@@ -170,8 +188,8 @@ class Hal(Player):
             if fits_grid == True:
                 self.place_ship(self.warship)
                 ship_placement = True
-                print("{ship} has been placed".format(ship=self.warship.type))
-                print(self.warship.coordinates)
+                #print("{ship} has been placed".format(ship=self.warship.type))
+                #print(self.warship.coordinates)
         # Cruiser
         ship_placement = False
         self.cruiser.alignment = self.get_random_alignment()
@@ -184,8 +202,8 @@ class Hal(Player):
             if fits_grid == True:
                 self.place_ship(self.cruiser)
                 ship_placement = True
-                print("{ship} has been placed".format(ship=self.cruiser.type))
-                print(self.cruiser.coordinates)
+                #print("{ship} has been placed".format(ship=self.cruiser.type))
+                #print(self.cruiser.coordinates)
         # Destroyer
         ship_placement = False
         self.destroyer.alignment = self.get_random_alignment()
@@ -198,12 +216,12 @@ class Hal(Player):
             if fits_grid == True:
                 self.place_ship(self.destroyer)
                 ship_placement = True
-                print("{ship} has been placed".format(ship=self.destroyer.type))
-                print(self.destroyer.coordinates)
-        # return affirmative message
+                #print("{ship} has been placed".format(ship=self.destroyer.type))
+                #print(self.destroyer.coordinates)
         return True
 
 
+# This is the class controls the game flow
 class Battleship:
     def __repr__(self):
         txt = """
@@ -254,12 +272,14 @@ class Battleship:
         """
         return txt
     
+    # print out intructions and create HAL
     def __init__(self):
         print(self)
         self.hal = Hal("Hal")
         # Place HAL ships
         self.hal.place_hal_ships()
 
+    # Validates the player inputs
     def input_validation(self, input_type, input):
         # Validate player name
         if input_type == "name":
@@ -289,13 +309,22 @@ class Battleship:
                     y = True
             if x == True and y == True: return True
             else: return False
+    
+    def print_stop_msg(self, type):
+        if type == "quit": 
+            print("\nYou've quit the game. Maybe you play to the end the next time. Have a nice day!\n")
+        if type == "game_over":
+            print("\nThanks for playing to the end! Have a nice day!\n")
+        
 
+    # This starts the game
     def play(self):
         # Ask player for his name
         player_input = False
         while player_input == False:
             str = input("Please enter your name: ")
             if str == "q" or str == "Q": 
+                self.print_stop_msg("quit")
                 return False
             elif self.input_validation("name", str) == True:
                 self.human = Player(str)
@@ -306,6 +335,7 @@ class Battleship:
         while player_input == False:
             str = input("{name} enter warship (size 4) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
             if str == "q" or str == "Q": 
+                self.print_stop_msg("quit")
                 return False
             if self.input_validation("starting_point", str) == True:
                 self.human.warship.alignment = str[0]
@@ -315,15 +345,18 @@ class Battleship:
                 # Place warship in grid
                 if fits_grid == True:
                     self.human.place_ship(self.human.warship)
-                    print("{ship} has been placed\n".format(ship=self.human.warship.type))
+                    print("> {ship} has been placed\n".format(ship=self.human.warship.type))
                     player_input = True
                 else:
-                    print(msg)  
+                    print(msg)
+            else:
+                print("> It is a 7x7 grid with two possible alignments (h or v). Please enter valid starting point!\n")
         # Ask player for alignment and starting point coordinates of cruiser
         player_input = False
         while player_input == False:
             str = input("{name} enter cruiser (size 3) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
             if str == "q" or str == "Q": 
+                self.print_stop_msg("quit")
                 return False
             if self.input_validation("starting_point", str) == True:
                 self.human.cruiser.alignment = str[0]
@@ -333,15 +366,18 @@ class Battleship:
                 # Place cruiser in grid
                 if fits_grid == True:
                     self.human.place_ship(self.human.cruiser)
-                    print("{ship} has been placed\n".format(ship=self.human.cruiser.type))
+                    print("> {ship} has been placed\n".format(ship=self.human.cruiser.type))
                     player_input = True
                 else:
                     print(msg)
+            else:
+                print("> It is a 7x7 grid with two possible alignments (h or v). Please enter valid starting point!\n")
         # Ask player for alignment and starting point coordinates of destroyer
         player_input = False
         while player_input == False:
             str = input("{name} enter destroyer (size 2) alignment (h or v) and starting point coordinates in 7x7 grid (x and y), make sure the ship fits in the grid, f.e. h21: ".format(name=self.human.name))
             if str == "q" or str == "Q": 
+                self.print_stop_msg("quit")
                 return False
             if self.input_validation("starting_point", str) == True:
                 self.human.destroyer.alignment = str[0]
@@ -351,10 +387,12 @@ class Battleship:
                 # Place cruiser in grid
                 if fits_grid == True:
                     self.human.place_ship(self.human.destroyer)
-                    print("{ship} has been placed\n".format(ship=self.human.destroyer.type))
+                    print("> {ship} has been placed\n".format(ship=self.human.destroyer.type))
                     player_input = True
                 else:
                     print(msg)
+            else:
+                print("> It is a 7x7 grid with two possible alignments (h or v). Please enter valid starting point!\n")
         # Shootes take turns
         game_over = False
         while game_over == False:
@@ -363,6 +401,7 @@ class Battleship:
             while player_input == False:
                 str = input("{name} it is your turn to shoot. Please enter coordinates (x and y): ".format(name=self.human.name))
                 if str == "q" or str == "Q":
+                    self.print_stop_msg("quit")
                     return False
                 if self.input_validation("shot", str) == True:
                     shot_x = int(str[0])-1
@@ -376,9 +415,12 @@ class Battleship:
                         if self.hal.all_ships_down() == True:
                             msg = "Congratulations {name}! You have won!".format(name=self.human.name)
                             print(msg)
+                            self.print_stop_msg("game_over")
                             game_over = True
                             return False
                     player_input = True
+                else:
+                    print("> It is a 7x7 grid. Please enter valid coordinates!\n")
             # HAL shoots
             print("Now {name} shoots".format(name=self.hal.name))
             valid_shot = False
@@ -392,13 +434,13 @@ class Battleship:
                 else:
                     print(msg)
                     if self.human.all_ships_down() == True:
-                        msg = "Congratulations {name}! You have won!".format(name=self.hal.name)
+                        msg = "{computer_name} has won! {human_name} you have lost!".format(computer_name=self.hal.name, human_name=self.human.name)
                         print(msg)
+                        self.print_stop_msg("game_over")
                         game_over = True
                         return False
                 valid_shot = True
         return True
-
         
 game1 = Battleship()
 game1.play()
